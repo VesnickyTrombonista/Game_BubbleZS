@@ -46,26 +46,29 @@ motion = 0
 isLeftDown = False
 isRightDown = False
 
-gravitation = 0.12 #dodělat gravitaci
+
 # Vytvoří­me hodiny, které hlídají­ kolik času uplynulo od posledního snímku
 clock = pygame.time.Clock()
 
 
 # --- Příprava proměnných a tříd pro animaci ---
 class Ball:
-    def __init__(self, velocity, center, radius, color):
-        self.velocity = velocity
+    def __init__(self, center, radius, color, velocity=pygame.Vector2(4.5,9.3)):
         self.center = center
         self.radius = radius
         self.color = color
+        self.velocity = velocity
+        self.x = 0
+        self.y = 0
+        self.gravitation = 0.0025*(100-self.radius)
         balls.append(self) #přidej do pole
+        if(self.x==0 and self.y==0): #původní směr
+            self.x = self.velocity.x
+            self.y = self.velocity.y
 
     def draw(self): #nakresli
         pygame.draw.circle(screen, self.color, self.center, self.radius)
-        #if self.velocity.y>0: #dolu
-         #   self.velocity.y += gravitation
-        #if self.velocity.y<0: #nahoru
-        self.velocity.y += gravitation
+        self.velocity.y += self.gravitation
     
     def bounce(self): #odraz
         global gravitation
@@ -73,7 +76,7 @@ class Ball:
         if self.center[0] < self.radius or self.center[0] > width-self.radius:
             self.velocity.x = -self.velocity.x
         if self.center[1] < top+self.radius or self.center[1] > height-self.radius:
-            self.velocity.y = -self.velocity.y
+            self.velocity.y = -self.y
     def shift(self):  #posuň
         self.center += self.velocity
 
@@ -110,10 +113,10 @@ def message(text, color):
 balls=[]
 
 # Vektor rychlosti kuliček (x, y), v "pixelech za snímek", #středy kuliček, #poloměry, #barva
-prvni = Ball(pygame.Vector2(5,5), (420,680), 35, orange)
-druhy = Ball(pygame.Vector2(6,6), (820,580), 60, purple)
-treti = Ball(pygame.Vector2(7,7), (100,640), 25, darkblue)
-
+prvni = Ball((420,680), 35, orange, pygame.Vector2(4.5,8.55))
+druhy = Ball((820,580), 60, purple, pygame.Vector2(4.5,8.55))
+treti = Ball((100,640), 25, darkblue, pygame.Vector2(4.5,8.55))
+ctvrty = Ball((1220,580), 72, white)
 
 # --- Nekonečná smyčka animace ---
 message("You play the game Bubble Trouble.", green)
@@ -158,20 +161,20 @@ while True:
 
             if pressed: 
                 if pressed[pygame.K_SPACE]:
-                    novy = Ball(pygame.Vector2(7,5), (30,680), 30, lime)
+                    novy = Ball((30,680), 30, lime, pygame.Vector2(4.5,8.3))
                     slug=Slug()
                     slug.draw()
                 if(pressed[pygame.K_LEFT] or isLeftDown==True):
-                    motion -= 8
+                    motion -= 6
                     isLeftDown = True
                 if(pressed[pygame.K_RIGHT] or isRightDown==True):
-                    motion += 8
+                    motion += 6
                     isRightDown = True
 
     if isLeftDown==True:
-        motion -= 8
+        motion -= 6
     if isRightDown==True:
-        motion += 8
+        motion += 6
 
 
 
@@ -186,7 +189,6 @@ while True:
     gamer.draw()
     
     #ve for cyklu všechno kreslení míčků
-    #gravitation*=1.000002
 
     for ball in balls:
         ball.bounce()
@@ -199,7 +201,7 @@ while True:
 
     # Budeme spát (nic nedělat) tak dlouho, aby jeden sní­mek trval 1/30 sekundy.
     # To nám zajistí, že nebudeme mí­t 100% vytížení­ CPU, nebudeme kreslit "co nejví­c" snímků.
-    clock.tick(60)
+    clock.tick(60) #FPS
 
 
 

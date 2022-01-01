@@ -184,9 +184,9 @@ while True:
     screen.blit(background, (0,0))
 
     gamer.draw()
-
+    
     #ve for cyklu všechno kreslení míčků
-    gravitation*=1.000002
+    #gravitation*=1.000002
 
     for ball in balls:
         ball.bounce()
@@ -200,4 +200,6 @@ while True:
     # Budeme spát (nic nedělat) tak dlouho, aby jeden sní­mek trval 1/30 sekundy.
     # To nám zajistí, že nebudeme mí­t 100% vytížení­ CPU, nebudeme kreslit "co nejví­c" snímků.
     clock.tick(60)
+
+
 

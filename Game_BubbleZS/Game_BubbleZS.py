@@ -184,7 +184,7 @@ while True:
     screen.blit(background, (0,0))
 
     gamer.draw()
-
+    
     #ve for cyklu všechno kreslení míčků
     gravitation*=1.000002
 

@@ -2,6 +2,7 @@ import os
 import sys
 import pygame
 import time
+import random
 
 # Převod relativní­ cesty vzhledem k tomuto souboru na absolutní­ cestu.
 def fix_path(p):
@@ -53,11 +54,11 @@ clock = pygame.time.Clock()
 
 # --- Příprava proměnných a tříd pro animaci ---
 class Ball:
-    def __init__(self, center, radius, color, velocity=pygame.Vector2(4.5,9.3)):
+    def __init__(self, center, radius, color):
         self.center = center
         self.radius = radius
         self.color = color
-        self.velocity = velocity
+        self.velocity = pygame.Vector2(4.5,8) #stejná rychlost
         self.x = 0
         self.y = 0
         self.gravitation = 0.0025*(100-self.radius)
@@ -77,6 +78,7 @@ class Ball:
             self.velocity.x = -self.velocity.x
         if self.center[1] < top+self.radius or self.center[1] > height-self.radius:
             self.velocity.y = -self.y
+
     def shift(self):  #posuň
         self.center += self.velocity
 
@@ -92,16 +94,29 @@ class Player: #60x100
         if self.where > right-5:
             self.where = right
         screen.blit(player,(self.where, height-100))
+
     def get_topcenter(self):
-        return (width-self.where-25, height-100)
+        return (self.where+30, height-100)
+
     def get_uppercenter(self):
-        return (width-self.where-25, height-200)
+        return (self.where+30, height-120)
 
 class Slug: #střela
-    def __init__(self,color=red):
+    def __init__(self,color=yellow):
         self.color=color
+        self.center = gamer.get_uppercenter()
+        self.end = gamer.get_topcenter()
+        self.velocity = pygame.Vector2(0,-5)
+        slugs.append(self)
+
     def draw(self):
-        pygame.draw.line(screen, self.color, gamer.get_uppercenter(), gamer.get_topcenter(), width=2)#...
+        if(self.center[1]>0):
+            pygame.draw.line(screen, self.color, self.center, self.end, width=5) 
+        else: slugs.remove(self)
+
+    def shift(self):  #posuň
+        self.center += self.velocity
+        self.end += self.velocity
 
 #zpráva
 font = pygame.font.SysFont(None, 30)
@@ -111,11 +126,11 @@ def message(text, color):
     screen.blit(info, (width/2-180, height/2))
     
 balls=[]
-
+slugs=[]
 # Vektor rychlosti kuliček (x, y), v "pixelech za snímek", #středy kuliček, #poloměry, #barva
-prvni = Ball((420,680), 35, orange, pygame.Vector2(4.5,8.55))
-druhy = Ball((820,580), 60, purple, pygame.Vector2(4.5,8.55))
-treti = Ball((100,640), 25, darkblue, pygame.Vector2(4.5,8.55))
+prvni = Ball((420,680), 35, lime)
+druhy = Ball((820,580), 60, purple)
+treti = Ball((100,640), 20, darkblue)
 ctvrty = Ball((1220,580), 72, white)
 
 # --- Nekonečná smyčka animace ---
@@ -161,9 +176,9 @@ while True:
 
             if pressed: 
                 if pressed[pygame.K_SPACE]:
-                    novy = Ball((30,680), 30, lime, pygame.Vector2(4.5,8.3))
-                    slug=Slug()
-                    slug.draw()
+                    #novy = Ball((30,680), 25, lime)
+                    #s=random.randrange(1,100,1)
+                    s=Slug()
                 if(pressed[pygame.K_LEFT] or isLeftDown==True):
                     motion -= 6
                     isLeftDown = True
@@ -194,6 +209,10 @@ while True:
         ball.bounce()
         ball.shift()
         ball.draw()
+
+    for slug in slugs:
+        slug.draw()
+        slug.shift()
 
     # Zapíšeme objekt 'screen', "někam", aby se nám zobrazil v okně›
     # (do teď jsme kreslili jen někam do paměti, teď to zobrazíme na obrazovku)

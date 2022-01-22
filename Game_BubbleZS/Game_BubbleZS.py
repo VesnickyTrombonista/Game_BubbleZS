@@ -23,6 +23,8 @@ screen = pygame.display.set_mode(window_size)
 pygame.display.set_caption("Game")
 
 #barvy
+colors=[]
+
 black = pygame.Color(0, 0, 0)
 blue = pygame.Color(0, 0, 255)
 green = pygame.Color(0, 255, 0)
@@ -34,8 +36,21 @@ orange = pygame.Color(255, 165, 0)
 darkblue = pygame.Color(0, 0, 128)
 purple = pygame.Color(128, 0, 128)
 
+colors.append(black)
+colors.append(blue)
+colors.append(green)
+colors.append(lime)
+colors.append(red)
+colors.append(yellow)
+#colors.append(white)
+colors.append(orange)
+colors.append(darkblue)
+colors.append(purple)
+
 #pozadí
-background = pygame.image.load("background.jpg").convert() 
+background = pygame.image.load("background.jpg").convert()    
+background1 = pygame.image.load("background1.jpg").convert() 
+background2= pygame.image.load("background2.jpg").convert() 
 
 #ikona hráče
 player = pygame.image.load("shooter.png").convert()
@@ -52,6 +67,14 @@ isSpaceDown = False
 # Vytvoří­me hodiny, které hlídají­ kolik času uplynulo od posledního snímku
 clock = pygame.time.Clock()
 
+lives=5
+timeWhenLostLife=120
+score=0
+watch=121
+
+balls=[]
+slugs=[]
+distance=400 #pro vzdálenosti střel
 
 # --- Příprava proměnných a tříd pro animaci ---
 class Ball:
@@ -87,6 +110,7 @@ class Player: #60x100
     global place
     def __init__(self,where):
         self.where = where
+        self.body = pygame.Rect(self.where,height-100,60,100)
     def draw(self):
         left=-2
         right=int(width-60)
@@ -96,36 +120,40 @@ class Player: #60x100
             self.where = right
         screen.blit(player,(self.where, height-100))
 
-    def get_topcenter(self):
-        return (self.where+30, height-100)
+    def get_downcenter(self):
+        return (self.where+30, height)
 
     def get_uppercenter(self):
         return (self.where+30, height-120)
 
+    def collide(self):
+        global timeWhenLostLife, watch, lives
+        if (timeWhenLostLife<=watch+2): #+2...čas co má imunitu
+            pass
+        else:
+            for color in colors:
+                if pygame.sprite.collideany(player,color):
+                    lives -= 1
+                    timeWhenLostLife=watch
+
 class Slug: #střela
-    def __init__(self,color=yellow):
-        self.color=color
+    def __init__(self, color = white):
+        global score
+        self.color = color
         self.center = gamer.get_uppercenter()
-        self.end = gamer.get_topcenter()
+        self.end = gamer.get_downcenter()
         self.velocity = pygame.Vector2(0,-10)
         slugs.append(self)
+        score += 10
 
     def draw(self):
         if(self.center[1]>20):
-            pygame.draw.line(screen, self.color, self.center, self.end, width=5) 
+            pygame.draw.line(screen, self.color, self.center, self.end, width = 2) 
         else: slugs.remove(self)
 
     def shift(self):  #posuň
         self.center += self.velocity
-        self.end += self.velocity
-
-lives=5
-score=0
-watch=121
-
-balls=[]
-slugs=[]
-distance=400 #pro vzdálenosti střel
+        #self.end += self.velocity
 
 
 #zpráva
@@ -134,31 +162,50 @@ font2 = pygame.font.SysFont(None, 40, False, True)
 
 def message(text, color):
     info = font1.render(text, True, color)
-    screen.blit(info, (width/3, height/2))
+    screen.blit(info, (width/3.05, height/2.137))
+
+def message1(text, color):
+    info = font1.render(text, True, color)
+    screen.blit(info, (width/3.1, height/3.5))
+
+def message2(text, color): 
+    info = font1.render(text, True, color)
+    screen.blit(info, (width/2.2, height/3.5))
+
+def messFinalLosingScore(text, color): #zpráva o skóre na konci
+    info = font2.render(text, True, color)
+    screen.blit(info,(width/2.36, height/3.5 + 40))
+
+def messFinalLeftingScore(text, color): #zpráva o skóre po ukončení
+    info = font2.render(text, True, color)
+    screen.blit(info,(width/2.4, height/3.5 + 40))
 
 def messLives(text, color): #zpráva o životech
     info = font2.render(text, True, color)
-    screen.blit(info,(5,5))
+    screen.blit(info,(5, 5))
 
 def messScore(text, color): #zpráva o skóre
     info = font2.render(text, True, color)
-    screen.blit(info,(width/2.3,5))
+    screen.blit(info,(width/2.3, 5))
 
 def messTime(text, color): #zpráva o času
     info = font2.render(text, True, color)
-    screen.blit(info,(width-135,5))
-
+    screen.blit(info,(width-135, 5))
+    
 # Vektor rychlosti kuliček (x, y), v "pixelech za snímek", #středy kuliček, #poloměry, #barva
 prvni = Ball((420,680), 35, lime)
 druhy = Ball((820,580), 60, purple)
 treti = Ball((100,640), 20, darkblue)
-ctvrty = Ball((1220,580), 72, white)
+ctvrty = Ball((1220,580), 72, orange)
 
-# --- Nekonečná smyčka animace ---
-message("You play the game Bubble Trouble.", green)
+
+# --- Začátek animace ---
+screen.blit(background1, (0,0))
+message("You play the game Bubble Trouble.", orange)
 pygame.display.update()
 time.sleep(2)
 
+# --- Nekonečná smyčka animace ---
 while True:
 
     gamer = Player(place+motion)
@@ -167,26 +214,22 @@ while True:
 
     # Přečteme události, které nastaly od poslední­ho update
     for event in pygame.event.get():
-        # A zajistí­me exit při požadavku na zavření okna (křížek)
+        # --- Konec animace --- A zajistí­me exit při požadavku na zavření okna (křížek)... 
             if(event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE)):
                 screen.fill(black)
-                message("You left the game Bubble Trouble.", red)
+                screen.blit(background2, (0,0))
+                message1("You left the game Bubble Trouble.", red)
+                messFinalLeftingScore("Your score was: "+str(score), yellow)
                 pygame.display.update()
                 time.sleep(2)
                 pygame.quit()
+                print()
                 print("You left the game.")
                 print("Your score was: "+str(score))
+                print("Thank you for playing the game.")
+                print()
                 os._exit(0) 
                 
-            if (int(lives)==0 or int(watch)==0):
-                screen.fill(black)
-                message("You lost.", red)
-                pygame.display.update()
-                time.sleep(2)
-                pygame.quit()
-                print("You lost.")
-                print("Your score was: "+str(score))
-                os._exit(0) 
             
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_LEFT:
@@ -203,10 +246,10 @@ while True:
                     if pressed[pygame.K_SPACE]:
                         s=Slug()
                         isSpaceDown = True
-                elif slugs != []:
-                    if pressed[pygame.K_SPACE] and slugs[-1].center[1]<distance:
-                        s=Slug()
-                        isSpaceDown = True
+                #elif slugs != []:
+                #    if pressed[pygame.K_SPACE] and slugs[-1].center[1]<distance:
+                #        s=Slug()
+                #        isSpaceDown = True
                 
 
                 if((pressed[pygame.K_LEFT] or isLeftDown==True) and int(gamer.where)>=4):
@@ -221,10 +264,23 @@ while True:
     if(isRightDown==True and int(gamer.where)<=int(width-65)):
         motion += 6
 
-    if(isSpaceDown==True and slugs[-1].center[1]<distance):
-        s=Slug()
+    #if(isSpaceDown==True and slugs[-1].center[1]<distance):
+    #    s=Slug()
     
-
+    if (int(lives)==0 or int(watch)==0):
+      screen.fill(black)
+      screen.blit(background2, (0,0))
+      message2("You lost.", red)
+      messFinalLosingScore("Your score was: "+str(score), yellow)
+      pygame.display.update()
+      time.sleep(2)
+      pygame.quit()
+      print()
+      print("You lost.")
+      print("Your score was: "+str(score))
+      print("Thank you for playing the game.")
+      print()
+      os._exit(0) 
 
 
     
@@ -235,7 +291,6 @@ while True:
 
     screen.blit(background, (0,0))
 
-    gamer.draw()
     
     watch -= 1/60 
     #ve for cyklu všechno kreslení míčků
@@ -249,6 +304,10 @@ while True:
         slug.draw()
         slug.shift()
 
+    gamer.draw()
+
+    #gamer.collide()
+
     messLives("Lives: "+str(lives), red)
     messScore(f"Score: {score}", green)
     messTime(f"Time: {int(watch)}", orange)
@@ -260,6 +319,7 @@ while True:
     # Budeme spát (nic nedělat) tak dlouho, aby jeden sní­mek trval 1/30 sekundy.
     # To nám zajistí, že nebudeme mí­t 100% vytížení­ CPU, nebudeme kreslit "co nejví­c" snímků.
     clock.tick(60) #FPS
+
 
 
 

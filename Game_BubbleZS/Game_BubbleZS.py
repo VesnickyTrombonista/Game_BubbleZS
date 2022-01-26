@@ -56,8 +56,10 @@ isSpaceDown = False
 # Vytvoří­me hodiny, které hlídají­ kolik času uplynulo od posledního snímku
 clock = pygame.time.Clock()
 
-lives=25
+lives=5
 timeWhenLostLife=123
+timeWhenShutDown=123
+shutDown=False
 score=0
 watch=121
 
@@ -77,9 +79,13 @@ class Ball:
         self.new = new
         self.direction = direction
         if(self.direction==True):
-            self.velocity = pygame.Vector2(4.5,int(self.new)*8) #stejná rychlost
+            self.velocity = pygame.Vector2(4.5,8) #stejná rychlost
+            if(self.new==-1):
+                self.velocity = pygame.Vector2(4.5,-8)
         if(self.direction==False):
-            self.velocity = pygame.Vector2(-4.5,int(self.new)*8) #stejná rychlost
+            self.velocity = pygame.Vector2(-4.5,8)
+            if(self.new==-1):
+                self.velocity = pygame.Vector2(-4.5,-8)
         self.x = 0
         self.y = 0
         self.gravitation = 0.0025*(100-self.radius)
@@ -87,22 +93,30 @@ class Ball:
         if(self.x==0 and self.y==0): #původní směr
             self.x = self.velocity.x
             self.y = self.velocity.y
-        if(self.center[1]<15 or self.center[1]>900 or self.center[0]<-50 or self.center[0]>1600):
-            score += self.radius
-            balls.remove(self)
+
 
     def draw(self): #nakresli
+        global score
+        if((int(self.center[1])-int(self.radius))<=32): # or self.center[0]<1 or self.center[0]>1499
+            score += self.radius
+            balls.remove(self)
         pygame.draw.circle(screen, self.color, self.center, self.radius)
         self.velocity.y += self.gravitation
     
     def bounce(self): #odraz
         global gravitation
-        top = max(height-18*self.radius, 0)
-        if self.center[0] < self.radius or self.center[0] > width-self.radius:
+        #top = 10 ošetří mi vršek
+        if (self.center[0] < self.radius or self.center[0] > width-self.radius):
             self.velocity.x = -self.velocity.x
-        if self.center[1] < top+self.radius or self.center[1] > height-self.radius:
-            self.velocity.y = -self.y
-
+        if(self.new==-1):
+            if (self.center[1] < self.radius): #+top
+                self.velocity.y = -self.y
+            if(self.center[1] > height-self.radius):
+                self.velocity.y = self.y
+        else:
+            if (self.center[1] < self.radius or self.center[1] > height-self.radius): #+top
+                self.velocity.y = -self.y
+            
     def shift(self):  #posuň
         self.center += self.velocity
 
@@ -147,10 +161,14 @@ class Slug: #střela
         self.end = gamer.get_downcenter()
         self.velocity = pygame.Vector2(0,-10)
         slugs.append(self)
-        score += 10
 
     def draw(self):
-        global slugColliders, slugs
+        global slugColliders, slugs, shutDown
+        if(shutDown==True):
+            slugs.remove(self)
+            slugColliders = []
+            shutDown=False
+            return
         if(self.center[1]>20):
             pygame.draw.line(screen, self.color, self.center, self.end, width = 2) 
         else: 
@@ -187,12 +205,15 @@ def collision(circle1,circle2): #kolize míčku a circle2 bude hráč: [centerx,
         return True
     else:
         return False
-        
-#druha kolize pro strelu bude postupně jen dle jejiho vrcholu, nejmensi micek carkovanou siti neproleti bez kolize
+
 def shootingDown(circle1,circle2): #kolize míčku a střely 
-    global score
+    global score, watch, timeWhenShutDown
+    if(timeWhenShutDown<=watch+0.2): #aby se stihly posunout menší míčky
+        return
+
     if(abs(circle1.x-circle2.x)>100): #optimalizace+- díky velké vzdálenosti na ose x
        return
+
     if(abs(circle1.x-circle2.x)<(circle1.r) and abs(circle1.y-circle2.y)<(circle1.r)):
         score += circle1.r
         return True
@@ -236,11 +257,11 @@ def messTime(text, color): #zpráva o času
     screen.blit(info,(width-135, 5))
     
 # Vektor rychlosti kuliček (x, y), v "pixelech za snímek", #středy kuliček, #poloměry, #barva
-prvni = Ball((420,680), 30, lime)
-druhy = Ball((820,580), 45, purple)
-treti = Ball((100,640), 15, darkblue)
-ctvrty = Ball((1220,580), 60, orange)
-paty = Ball((220,580), 75, yellow)
+prvni = Ball((420,680), 30, lime, 1, True)
+druhy = Ball((820,580), 45, purple, 1, True)
+treti = Ball((100,640), 15, darkblue, 1, True)
+ctvrty = Ball((1220,580), 60, orange, 1, True)
+paty = Ball((220,580), 75, yellow, 1, True)
 
 # --- Začátek animace ---
 screen.blit(background1, (0,0))
@@ -289,11 +310,6 @@ while True:
                     if pressed[pygame.K_SPACE]:
                         s=Slug()
                         isSpaceDown = True
-                #elif slugs != []:
-                #    if pressed[pygame.K_SPACE] and slugs[-1].center[1]<distance:
-                #        s=Slug()
-                #        isSpaceDown = True
-                
 
                 if((pressed[pygame.K_LEFT] or isLeftDown==True) and int(gamer.where)>=4):
                     motion -= 6
@@ -307,10 +323,7 @@ while True:
     if(isRightDown==True and int(gamer.where)<=int(width-65)):
         motion += 6
 
-    #if(isSpaceDown==True and slugs[-1].center[1]<distance):
-    #    s=Slug()
-    
-    if (int(lives)==0 or int(watch)==0 or balls==[]):
+    if (int(lives)==0 or int(watch)==0):
       screen.fill(black)
       screen.blit(background2, (0,0))
       message2("You lost.", red)
@@ -325,6 +338,21 @@ while True:
       print()
       os._exit(0) 
 
+    if (balls==[]):
+      time.sleep(1)
+      screen.fill(black)
+      screen.blit(background2, (0,0))
+      message2("You won.", red)
+      messFinalLosingScore("Your score was: "+str(score), yellow)
+      pygame.display.update()
+      time.sleep(2)
+      pygame.quit()
+      print()
+      print("You win.")
+      print("Your score was: "+str(score))
+      print("Thank you for playing the game.")
+      print()
+      os._exit(0) 
 
     
     # --- DRAW ---
@@ -334,9 +362,9 @@ while True:
 
     screen.blit(background, (0,0))
 
-    
     watch -= 1/60 
-    #ve for cyklu všechno kreslení míčků
+
+    #ve for cyklu všechno kreslení míčků a střel
     colliders = []
     for ball in balls:
         ball.bounce()
@@ -357,21 +385,31 @@ while True:
         collision(collider, gamer.get_middleCircle())
     for collider in colliders:
         collision(collider, gamer.get_downCircle())
-
+    
     for slugCollider in slugColliders:
         for collider in colliders:
             if(shootingDown(collider, slugCollider)):
-                new = balls[colliders.index(collider)]
-                if (new.radius>15):
-                    new1 = Ball(new.center, new.radius-15, new.color, -1, True)
-                    new2 = Ball(new.center, new.radius-15, new.color, -1, False)
-                    del balls[colliders.index(collider)]
-                elif (new.radius==15):
-                    del balls[colliders.index(collider)]
+                shutDown=True
+                timeWhenShutDown=watch
+                new = balls[int(colliders.index(collider))]
+                slugColliders=[]
+                if (int(new.radius)>15):
+                    new1 = Ball((new.center[0]+2, new.center[1]+1), new.radius-15, new.color, -1, direction=True)
+                    new2 = Ball((new.center[0]-2, new.center[1]+1), new.radius-15, new.color, -1, direction=False)
+                    del balls[int(colliders.index(collider))]
+                    del new
+                    del collider
+                elif (int(new.radius)==15):
+                    del balls[int(colliders.index(collider))]
+                    del new
+                    del collider
+
 
     messLives("Lives: "+str(lives), red)
     messScore(f"Score: {score}", green)
     messTime(f"Time: {int(watch)}", orange)
+
+    pygame.draw.line(screen, red, (0,32), (1500,32), width = 3) #čára oddělující skóre a je to top, kde se bubliny rozbijí
 
     # Zapíšeme objekt 'screen', "někam", aby se nám zobrazil v okně›
     # (do teď jsme kreslili jen někam do paměti, teď to zobrazíme na obrazovku)

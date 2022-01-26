@@ -23,8 +23,6 @@ screen = pygame.display.set_mode(window_size)
 pygame.display.set_caption("Game")
 
 #barvy
-colors=[]
-
 black = pygame.Color(0, 0, 0)
 blue = pygame.Color(0, 0, 255)
 green = pygame.Color(0, 255, 0)
@@ -36,17 +34,6 @@ orange = pygame.Color(255, 165, 0)
 darkblue = pygame.Color(0, 0, 128)
 purple = pygame.Color(128, 0, 128)
 
-colors.append(black)
-colors.append(blue)
-colors.append(green)
-colors.append(lime)
-colors.append(red)
-colors.append(yellow)
-#colors.append(white)
-colors.append(orange)
-colors.append(darkblue)
-colors.append(purple)
-
 #pozadí
 background = pygame.image.load("background.jpg").convert()    
 background1 = pygame.image.load("background1.jpg").convert() 
@@ -56,33 +43,43 @@ background2= pygame.image.load("background2.jpg").convert()
 player = pygame.image.load("shooter.png").convert()
 player.set_colorkey(white)
 
+playerInv = pygame.image.load("shooter2.png").convert() #lze i shooter3
+playerInv.set_colorkey(white)
+
 #kam ho nakreslím
 place = int((width/2)-60)
 motion = 0
 isLeftDown = False
 isRightDown = False
-
 isSpaceDown = False
 
 # Vytvoří­me hodiny, které hlídají­ kolik času uplynulo od posledního snímku
 clock = pygame.time.Clock()
 
-lives=5
-timeWhenLostLife=120
+lives=25
+timeWhenLostLife=123
 score=0
 watch=121
 
 balls=[]
+colliders=[]
 slugs=[]
+slugColliders=[]
 distance=400 #pro vzdálenosti střel
 
 # --- Příprava proměnných a tříd pro animaci ---
 class Ball:
-    def __init__(self, center, radius, color):
+    global score, balls
+    def __init__(self, center, radius, color, new=1, direction = True): #pokud je nová, tak poletí nahoru a znak bude -1, # direction=True poletí doprava, jinak doleva
         self.center = center
         self.radius = radius
         self.color = color
-        self.velocity = pygame.Vector2(4.5,8) #stejná rychlost
+        self.new = new
+        self.direction = direction
+        if(self.direction==True):
+            self.velocity = pygame.Vector2(4.5,int(self.new)*8) #stejná rychlost
+        if(self.direction==False):
+            self.velocity = pygame.Vector2(-4.5,int(self.new)*8) #stejná rychlost
         self.x = 0
         self.y = 0
         self.gravitation = 0.0025*(100-self.radius)
@@ -90,6 +87,9 @@ class Ball:
         if(self.x==0 and self.y==0): #původní směr
             self.x = self.velocity.x
             self.y = self.velocity.y
+        if(self.center[1]<15 or self.center[1]>900 or self.center[0]<-50 or self.center[0]>1600):
+            score += self.radius
+            balls.remove(self)
 
     def draw(self): #nakresli
         pygame.draw.circle(screen, self.color, self.center, self.radius)
@@ -107,10 +107,10 @@ class Ball:
         self.center += self.velocity
 
 class Player: #60x100
-    global place
+    global place, timeWhenLostLife, watch, lives
     def __init__(self,where):
         self.where = where
-        self.body = pygame.Rect(self.where,height-100,60,100)
+
     def draw(self):
         left=-2
         right=int(width-60)
@@ -118,45 +118,88 @@ class Player: #60x100
            self.where = left
         if self.where > right-5:
             self.where = right
-        screen.blit(player,(self.where, height-100))
+        if (timeWhenLostLife<=watch+1.5): #+1.5...čas co má imunitu
+            screen.blit(playerInv,(self.where, height-100))
+        else:
+            screen.blit(player,(self.where, height-100))
 
     def get_downcenter(self):
         return (self.where+30, height)
 
-    def get_uppercenter(self):
-        return (self.where+30, height-120)
+    def get_undercenter(self):
+        return (self.where+30, height-10)
+    
+    #na kolizi, centerx, centery, radius
+    def get_upperCircle(self):
+        return (self.where+30, height-75, 26)
 
-    def collide(self):
-        global timeWhenLostLife, watch, lives
-        if (timeWhenLostLife<=watch+2): #+2...čas co má imunitu
-            pass
-        else:
-            for color in colors:
-                if pygame.sprite.collideany(player,color):
-                    lives -= 1
-                    timeWhenLostLife=watch
+    def get_middleCircle(self):
+        return (self.where+30, height-40, 25)
 
+    def get_downCircle(self):
+        return (self.where+30, height-5, 30)
+    
 class Slug: #střela
     def __init__(self, color = white):
-        global score
+        global score, slugs
         self.color = color
-        self.center = gamer.get_uppercenter()
+        self.center = gamer.get_undercenter()
         self.end = gamer.get_downcenter()
         self.velocity = pygame.Vector2(0,-10)
         slugs.append(self)
         score += 10
 
     def draw(self):
+        global slugColliders, slugs
         if(self.center[1]>20):
             pygame.draw.line(screen, self.color, self.center, self.end, width = 2) 
-        else: slugs.remove(self)
+        else: 
+            slugs.remove(self)
+            slugColliders = []
 
     def shift(self):  #posuň
         self.center += self.velocity
-        #self.end += self.velocity
+        #self.end += self.velocity  #aby byla až odspodu
 
+class CircleCollider: #pro balonky
+   def __init__(self, centerx, centery, radius):
+        self.r = radius
+        self.x = centerx
+        self.y = centery
+        colliders.append(self)
+class SlugCollider: #pro střely
+   def __init__(self, centerx, centery):
+        self.x = centerx
+        self.y = centery
+        slugColliders.append(self)
 
-#zpráva
+def collision(circle1,circle2): #kolize míčku a circle2 bude hráč: [centerx,centery,radius]
+    global timeWhenLostLife, watch, lives
+    if (timeWhenLostLife<=watch+1.5): #+1.5...čas co má imunitu
+        return
+
+    if(abs(circle1.x-circle2[0])>150): #optimalizace+- díky velké vzdálenosti na ose x
+       return
+
+    if(abs(circle1.x-circle2[0])<(circle1.r+circle2[2]) and abs(circle1.y-circle2[1])<(circle1.r+circle2[2])):
+        lives -= 1
+        timeWhenLostLife=watch 
+        return True
+    else:
+        return False
+        
+#druha kolize pro strelu bude postupně jen dle jejiho vrcholu, nejmensi micek carkovanou siti neproleti bez kolize
+def shootingDown(circle1,circle2): #kolize míčku a střely 
+    global score
+    if(abs(circle1.x-circle2.x)>100): #optimalizace+- díky velké vzdálenosti na ose x
+       return
+    if(abs(circle1.x-circle2.x)<(circle1.r) and abs(circle1.y-circle2.y)<(circle1.r)):
+        score += circle1.r
+        return True
+    else:
+        return False
+
+#zprávy
 font1 = pygame.font.SysFont(None, 50, False, True)
 font2 = pygame.font.SysFont(None, 40, False, True)
 
@@ -193,11 +236,11 @@ def messTime(text, color): #zpráva o času
     screen.blit(info,(width-135, 5))
     
 # Vektor rychlosti kuliček (x, y), v "pixelech za snímek", #středy kuliček, #poloměry, #barva
-prvni = Ball((420,680), 35, lime)
-druhy = Ball((820,580), 60, purple)
-treti = Ball((100,640), 20, darkblue)
-ctvrty = Ball((1220,580), 72, orange)
-
+prvni = Ball((420,680), 30, lime)
+druhy = Ball((820,580), 45, purple)
+treti = Ball((100,640), 15, darkblue)
+ctvrty = Ball((1220,580), 60, orange)
+paty = Ball((220,580), 75, yellow)
 
 # --- Začátek animace ---
 screen.blit(background1, (0,0))
@@ -267,7 +310,7 @@ while True:
     #if(isSpaceDown==True and slugs[-1].center[1]<distance):
     #    s=Slug()
     
-    if (int(lives)==0 or int(watch)==0):
+    if (int(lives)==0 or int(watch)==0 or balls==[]):
       screen.fill(black)
       screen.blit(background2, (0,0))
       message2("You lost.", red)
@@ -294,19 +337,37 @@ while True:
     
     watch -= 1/60 
     #ve for cyklu všechno kreslení míčků
-
+    colliders = []
     for ball in balls:
         ball.bounce()
         ball.shift()
         ball.draw()
+        piece = CircleCollider(ball.center[0], ball.center[1], ball.radius)
 
     for slug in slugs:
         slug.draw()
         slug.shift()
+        net = SlugCollider(slug.center[0], slug.center[1]) #síť střel(y)
 
     gamer.draw()
 
-    #gamer.collide()
+    for collider in colliders:
+        collision(collider, gamer.get_upperCircle())
+    for collider in colliders:
+        collision(collider, gamer.get_middleCircle())
+    for collider in colliders:
+        collision(collider, gamer.get_downCircle())
+
+    for slugCollider in slugColliders:
+        for collider in colliders:
+            if(shootingDown(collider, slugCollider)):
+                new = balls[colliders.index(collider)]
+                if (new.radius>15):
+                    new1 = Ball(new.center, new.radius-15, new.color, -1, True)
+                    new2 = Ball(new.center, new.radius-15, new.color, -1, False)
+                    del balls[colliders.index(collider)]
+                elif (new.radius==15):
+                    del balls[colliders.index(collider)]
 
     messLives("Lives: "+str(lives), red)
     messScore(f"Score: {score}", green)
@@ -319,6 +380,5 @@ while True:
     # Budeme spát (nic nedělat) tak dlouho, aby jeden sní­mek trval 1/30 sekundy.
     # To nám zajistí, že nebudeme mí­t 100% vytížení­ CPU, nebudeme kreslit "co nejví­c" snímků.
     clock.tick(60) #FPS
-
 
 

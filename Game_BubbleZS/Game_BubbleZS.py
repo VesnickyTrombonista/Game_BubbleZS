@@ -47,6 +47,10 @@ player.set_colorkey(white)
 playerInv = pygame.image.load("shooter2.png").convert() #lze i shooter3
 playerInv.set_colorkey(white)
 
+#3. ikona hráče
+playerFin = pygame.image.load("shooter3.png").convert() #lze i shooter3
+playerFin.set_colorkey(white)
+
 #kam ho nakreslím
 place = int((width/2)-60)
 motion = 0
@@ -66,6 +70,7 @@ shutDown=False
 score=0
 watch=201
 level=0
+victory=False
 
 balls=[]
 colliders=[]
@@ -125,7 +130,7 @@ class Ball:
         self.center += self.velocity
 
 class Player: #60x100
-    global place, timeWhenLostLife, watch, lives
+    global place, timeWhenLostLife, watch, lives, victory
     def __init__(self,where):
         self.where = where
 
@@ -140,6 +145,8 @@ class Player: #60x100
             screen.blit(playerInv,(self.where, height-100))
         else:
             screen.blit(player,(self.where, height-100))
+        if(victory==True):
+            screen.blit(playerFin,(self.where, height-100))
 
     def get_downcenter(self):
         return (self.where+30, height)
@@ -456,6 +463,8 @@ while True:
     
     #levly
     if(balls==[]):
+
+        #začátek
         level += 1
         screen.fill(black)
         screen.blit(background, (0,0))
@@ -517,6 +526,8 @@ while True:
             screen.blit(background2, (0,0))
             message2("You won.", red)
             messFinalLosingScore("Your score was: "+str(score), yellow)
+            victory=True
+            gamer.draw()
             pygame.display.update()
             time.sleep(2)
             pygame.quit()

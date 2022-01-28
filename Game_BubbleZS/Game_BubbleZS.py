@@ -3,7 +3,7 @@ import os
 import sys
 import pygame
 import time
-import random
+#import random #momentálně není třeba
 
 #převod relativní­ cesty vzhledem k tomuto souboru na absolutní­ cestu.
 def fix_path(p):
@@ -63,20 +63,21 @@ clock = pygame.time.Clock()
 
 #proměnné pro hru
 lives=5
-timeWhenLostLife=203 #oboje o dva více než watch, aby fungovalo
-timeWhenShutDown=203
+timeWhenLostLife=203 #oboje o dva více než watch, aby fungovalo #63
+timeWhenShutDown=203 #63
 colorOfTime = orange
 shutDown=False
 score=0
-watch=201
+watch=201 #nebo ho vždy dát na 61
 level=0
+roof=32
 victory=False
 
 balls=[]
 colliders=[]
 slugs=[]
 slugColliders=[]
-distance=400 #pro vzdálenosti střel
+#distance=400 #pro vzdálenosti střel, když byly jednotlivě
 
 #třídy pro animaci
 class Ball:
@@ -106,7 +107,7 @@ class Ball:
 
     def draw(self): #nakresli
         global score
-        if(int(self.center[1])<=32+int(self.radius)): 
+        if(int(self.center[1])<=roof+int(self.radius)): 
             score += self.radius
             balls.remove(self)
         pygame.draw.circle(screen, self.color, self.center, self.radius)
@@ -239,31 +240,31 @@ def shootingDown(circle1,circle2): #kolize míčku a střely
 font1 = pygame.font.SysFont("Ariel", 50, False, True)
 font2 = pygame.font.SysFont(None, 40, False, True)
 
-def message(text, color):
+def message(text, color): #úvodní slovo
     info = font1.render(text, True, color)
     screen.blit(info, (width/3.07, height/2.137))
 
-def message1(text, color):
+def message1(text, color): #závěr po ukončení
     info = font1.render(text, True, color)
     screen.blit(info, (width/3.1, height/3.5))
 
-def message2(text, color): 
+def message2(text, color): #výhra/prohra
     info = font1.render(text, True, color)
     screen.blit(info, (width/2.2, height/3.5))
 
-def message3(text, color): 
+def message3(text, color): #pravidla1
     info = font1.render(text, True, color)
     screen.blit(info, (50, height/2-70))
 
-def message4(text, color): 
+def message4(text, color): #pravidla2
     info = font1.render(text, True, color)
     screen.blit(info, (50, height/2-20))
 
-def message5(text, color): 
+def message5(text, color): #pravidla3
     info = font1.render(text, True, color)
     screen.blit(info, (50, height/2+30))
 
-def message6(text, color): 
+def message6(text, color): #pravidla - pro pokračování 
     info = font1.render(text, True, color)
     screen.blit(info, (50, height/2+150))
 
@@ -316,7 +317,7 @@ message3("Controls: <-  -> , space - shooting, esc - left the game", black)
 message4("You can see your lives, score, level and time at the top", black)
 message5("If the bubble touches the line, it will be destroyed", black)
 message6("Press SPACE to continue . . . ", red)
-pygame.draw.line(screen, purple, (0,32), (1500,32), width = 4)
+pygame.draw.line(screen, purple, (0,roof), (1500,roof), width = 4)
 pygame.display.update()
 
 #čekání na začátek
@@ -383,6 +384,7 @@ while True:
         motion += 6
     if(isSpaceDown and slugs==[]):
         s=Slug()
+        isSpaceDown=False #po vykreslení přestane být aktivní
 
     #konec, bez životů/času
     if (int(lives)==0 or int(watch)==0):
@@ -461,7 +463,7 @@ while True:
 
     pygame.draw.line(screen, purple, (0,32), (1500,32), width = 4) #čára oddělující skóre a je to top, kde se bubliny rozbijí
     
-    #levly
+    #levely
     if(balls==[]):
 
         #začátek
@@ -514,6 +516,9 @@ while True:
         for ball in balls:
             ball.draw()
         motion = 0
+        #timeWhenLostLife=203 #63
+        #timeWhenShutDown=203 #63
+        #watch=201 #61
         gamer = Player(place+motion)
         gamer.draw()        
         pygame.display.flip()
@@ -545,5 +550,3 @@ while True:
     #spaní, aby jeden sní­mek trval 1/60 sekundy
     #nebude 100% vytížení­ CPU, nebudeme kreslit "co nejví­c" snímků
     clock.tick(60) #FPS
-
-

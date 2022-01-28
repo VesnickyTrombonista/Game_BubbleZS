@@ -59,11 +59,12 @@ clock = pygame.time.Clock()
 
 #proměnné pro hru
 lives=5
-timeWhenLostLife=123
-timeWhenShutDown=123
+timeWhenLostLife=203 #oboje o dva více než watch, aby fungovalo
+timeWhenShutDown=203
+colorOfTime = orange
 shutDown=False
 score=0
-watch=121
+watch=201
 level=0
 
 balls=[]
@@ -182,7 +183,7 @@ class Slug: #střela
 
     def shift(self):  #posuň
         self.center += self.velocity
-        #self.end += self.velocity  #aby byla až odspodu
+        #self.end += self.velocity  #nebyla by až odspodu
 
 class CircleCollider: #pro balonky
    def __init__(self, centerx, centery, radius):
@@ -228,12 +229,12 @@ def shootingDown(circle1,circle2): #kolize míčku a střely
 
 
 #zprávy ve hře
-font1 = pygame.font.SysFont(None, 50, False, True)
+font1 = pygame.font.SysFont("Ariel", 50, False, True)
 font2 = pygame.font.SysFont(None, 40, False, True)
 
 def message(text, color):
     info = font1.render(text, True, color)
-    screen.blit(info, (width/3.05, height/2.137))
+    screen.blit(info, (width/3.07, height/2.137))
 
 def message1(text, color):
     info = font1.render(text, True, color)
@@ -242,6 +243,22 @@ def message1(text, color):
 def message2(text, color): 
     info = font1.render(text, True, color)
     screen.blit(info, (width/2.2, height/3.5))
+
+def message3(text, color): 
+    info = font1.render(text, True, color)
+    screen.blit(info, (50, height/2-70))
+
+def message4(text, color): 
+    info = font1.render(text, True, color)
+    screen.blit(info, (50, height/2-20))
+
+def message5(text, color): 
+    info = font1.render(text, True, color)
+    screen.blit(info, (50, height/2+30))
+
+def message6(text, color): 
+    info = font1.render(text, True, color)
+    screen.blit(info, (50, height/2+150))
 
 def messFinalLosingScore(text, color): #zpráva o skóre na konci
     info = font2.render(text, True, color)
@@ -281,6 +298,28 @@ message("You play the game Bubble Trouble.", orange)
 pygame.display.update()
 time.sleep(2)
 
+#pravidla
+screen.fill(black)
+screen.blit(background1, (0,0))
+messLives("Lives: "+str(lives), red)
+messScore(f"Score: {score}", green)
+messTime(f"Time: {int(watch)}", colorOfTime)
+messLevel(f"Level: {int(level)}", blue)
+message3("Controls: <-  -> , space - shooting, esc - left the game", black)
+message4("You can see your lives, score, level and time at the top", black)
+message5("If the bubble touches the line, it will be destroyed", black)
+message6("Press SPACE to continue . . . ", red)
+pygame.draw.line(screen, purple, (0,32), (1500,32), width = 4)
+pygame.display.update()
+
+#čekání na začátek
+while isSpaceDown==False:
+    time.sleep(0.1)
+    for event in pygame.event.get():
+        pressed = pygame.key.get_pressed()
+        if pressed[pygame.K_SPACE]:
+            isSpaceDown=True
+isSpaceDown=False
 
 #nekonečná hlavní smyčka animace
 while True:               
@@ -328,13 +367,15 @@ while True:
                     isRightDown = True
 
                 #cheat
-                if pressed[pygame.K_KP7]:
-                    level=7
+                if pressed[pygame.K_KP0]:
+                    level=10
 
     if(isLeftDown==True and int(gamer.where)>=4):
         motion -= 6
     if(isRightDown==True and int(gamer.where)<=int(width-65)):
         motion += 6
+    if(isSpaceDown and slugs==[]):
+        s=Slug()
 
     #konec, bez životů/času
     if (int(lives)==0 or int(watch)==0):
@@ -372,6 +413,7 @@ while True:
         slug.draw()
         slug.shift()
         net = SlugCollider(slug.center[0], slug.center[1]) #síť střel(y)
+
     #hráč
     gamer = Player(place+motion)
     gamer.draw()
@@ -405,8 +447,10 @@ while True:
     #zprávy v hlavičce
     messLives("Lives: "+str(lives), red)
     messScore(f"Score: {score}", green)
-    messTime(f"Time: {int(watch)}", orange)
     messLevel(f"Level: {int(level)}", blue)
+    messTime(f"Time: {int(watch)}", colorOfTime)
+    if watch<20:
+        colorOfTime = red
 
     pygame.draw.line(screen, purple, (0,32), (1500,32), width = 4) #čára oddělující skóre a je to top, kde se bubliny rozbijí
     
@@ -417,7 +461,7 @@ while True:
         screen.blit(background, (0,0))
         messLives("Lives: "+str(lives), red)
         messScore(f"Score: {score}", green)
-        messTime(f"Time: {int(watch)}", orange)
+        messTime(f"Time: {int(watch)}", colorOfTime)
         messLevel(f"Level: {int(level)}", blue)
         pygame.draw.line(screen, purple, (0,32), (1500,32), width = 4)
         
@@ -426,20 +470,38 @@ while True:
         if(level==2):
             second = Ball((220,550), 30, lime, 1, True)
         if(level==3):
-            third = Ball((1320,500), 45, purple, 1, False)
+            third = Ball((1320,300), 45, purple, 1, False)
         if(level==4):
             first1 = Ball((100,500), 15, darkblue, 1, True)
             first2 = Ball((200,500), 15, darkblue, 1, True)
             second1 = Ball((1120,500), 30, lime, 1, True)
             second2 = Ball((1220,500), 30, lime, 1, True)
         if(level==5):
-            fourth = Ball((111,150), 60, orange, 1, True)
+            fourth = Ball((111,200), 60, orange, 1, True)
         if(level==6):
             fourth1 = Ball((1220,300), 60, orange, 1, True)
             fourth2 = Ball((220,300), 60, orange, 1, False)
         if(level==7):
+            lives += 1
             fifth = Ball((220,300), 75, yellow, 1, True)
+        if(level==8):
+            fifth1 = Ball((220,200), 75, yellow, 1, True)
+            fifth2 = Ball((1220,200), 75, yellow, 1, False)
+        if(level==9):
+            third1 = Ball((100,250), 45, purple, 1, True)
+            third2 = Ball((300,250), 45, purple, 1, True)
+            third3 = Ball((720,250), 45, purple, 1, True)
+            third4 = Ball((1100,250), 45, purple, 1, True)
+            third5 = Ball((1300,250), 45, purple, 1, True)
+        if(level==10):
+            lives += 1
+            fourth1 = Ball((1220,300), 60, orange, 1, True)
+            fourth2 = Ball((220,300), 60, orange, 1, False)
+            fourth3 = Ball((1020,300), 60, orange, 1, True)
+            fourth4 = Ball((420,300), 60, orange, 1, False)
+
         #...případné další levly
+
         for ball in balls:
             ball.draw()
         motion = 0
@@ -449,8 +511,8 @@ while True:
         time.sleep(2)
 
         #konec
-        if (level==8):
-            time.sleep(1)
+        if (level==11):
+            time.sleep(0)
             screen.fill(black)
             screen.blit(background2, (0,0))
             message2("You won.", red)
